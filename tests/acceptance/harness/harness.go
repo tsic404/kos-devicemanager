@@ -24,6 +24,7 @@ import (
 	"github.com/tsic404/kosd/api/v1beta1"
 	"github.com/tsic404/kosd/pkg/extension"
 	"github.com/tsic404/kosd/pkg/identity"
+	"github.com/tsic404/kosd/pkg/markers"
 	"github.com/tsic404/kosd/pkg/pages"
 	"github.com/tsic404/kosd/pkg/write"
 )
@@ -146,6 +147,27 @@ func (c *Cluster) Collected(t *testing.T, node, collector string, observedAt tim
 	}
 	if _, err := c.Dynamic.Resource(facts).Create(context.Background(), &unstructured.Unstructured{Object: object}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("create device facts of %s: %v", node, err)
+	}
+}
+
+// MarkInvalid puts the validator's validity marker on the stored fact object of
+// one node, as KOSD-C-02 places it on an object whose write fell outside the
+// collection boundary (NODE-C-37). The case states an invalid fact object; the
+// product under test only reads it.
+func (c *Cluster) MarkInvalid(t *testing.T, node string) {
+	t.Helper()
+	object, err := c.Dynamic.Resource(facts).Get(context.Background(), node, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("read device facts of %s: %v", node, err)
+	}
+	labels := object.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[markers.Invalid] = "true"
+	object.SetLabels(labels)
+	if _, err := c.Dynamic.Resource(facts).Update(context.Background(), object, metav1.UpdateOptions{}); err != nil {
+		t.Fatalf("mark device facts of %s invalid: %v", node, err)
 	}
 }
 

@@ -1,8 +1,9 @@
 // Package devicemanager is the kos-devicemanager product: the read-only device
-// view of the panel. It declares the device page and resolves its node summary
-// from the Node objects and the device facts the node collector wrote. The page
-// offers no write entry, because device facts belong to the collector and
-// hardware actions are outside the product (DEVICE-C-1, DEVICE-C-2).
+// view of the panel. It declares the device page and resolves its node summary,
+// device list, missing-layer alerts and fact staleness from the Node objects and
+// the device facts the node collector wrote. The page offers no write entry,
+// because device facts belong to the collector and hardware actions are outside
+// the product (DEVICE-C-1, DEVICE-C-2).
 package devicemanager
 
 import (
@@ -26,6 +27,15 @@ const ItemNodeSummary = "node-summary"
 // ItemDeviceList is the per-device item: four fact layers, the entry's
 // collection time and the occupancy (DEVICE-C-3, DEVICE-C-4).
 const ItemDeviceList = "device-list"
+
+// ItemLayerAlerts is the missing-layer alert item: the device and the layer
+// whose fact does not hold, with no repair entry (DEVICE-C-5).
+const ItemLayerAlerts = "layer-alerts"
+
+// ItemFactStaleness is the fact staleness item: the devices whose collection is
+// older than NODE-C-37's bound and the moment each was last observed
+// (DEVICE-C-6).
+const ItemFactStaleness = "fact-staleness"
 
 // ReadOnlyReason explains why the page offers no modification entry. The fact
 // side is the collector's alone, and hardware actions are outside the product
@@ -75,6 +85,16 @@ func DevicesPage() extension.Page {
 			Label:     "设备清单",
 			Source:    extension.PageSourceObject,
 			Reference: Identifier + "/" + ItemDeviceList,
+		}, {
+			ID:        ItemLayerAlerts,
+			Label:     "缺层告警",
+			Source:    extension.PageSourceComputed,
+			Reference: Identifier + "/" + ItemLayerAlerts,
+		}, {
+			ID:        ItemFactStaleness,
+			Label:     "事实陈旧",
+			Source:    extension.PageSourceComputed,
+			Reference: Identifier + "/" + ItemFactStaleness,
 		}},
 	}
 }
