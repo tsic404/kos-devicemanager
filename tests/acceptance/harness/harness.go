@@ -77,6 +77,31 @@ type Device struct {
 	Serial string
 	Model  string
 	Kind   string
+	// Layers are the four independent fact layers of the entry; nil means the
+	// collector reported the device on all four (NODE-C-70).
+	Layers *Layers
+	// Occupancy is the system holding the device; nil means the entry carries
+	// no occupancy, which is a free device (NODE-C-70).
+	Occupancy *Occupancy
+	// ObservedAt is the entry's own collection time; nil leaves the entry
+	// without one, the oldest position among its serial number (NODE-C-70).
+	ObservedAt *time.Time
+}
+
+// Layers are the four independent facts of one device entry; one being true
+// never implies another (NODE-C-37).
+type Layers struct {
+	Present     bool
+	Recognized  bool
+	DriverReady bool
+	Published   bool
+}
+
+// Occupancy is the system holding a device entry; an empty Reference means the
+// collection did not name the object inside that system (NODE-C-70).
+type Occupancy struct {
+	Source    string
+	Reference string
 }
 
 // Collected creates the device fact object of one node; the case states the
@@ -85,10 +110,25 @@ func (c *Cluster) Collected(t *testing.T, node, collector string, observedAt tim
 	t.Helper()
 	entries := make([]v1beta1.DeviceFact, 0, len(devices))
 	for _, device := range devices {
-		entries = append(entries, v1beta1.DeviceFact{
+		layers := Layers{Present: true, Recognized: true, DriverReady: true, Published: true}
+		if device.Layers != nil {
+			layers = *device.Layers
+		}
+		entry := v1beta1.DeviceFact{
 			Name: device.Name, Serial: device.Serial, Model: device.Model, Kind: device.Kind,
-			IsPresent: true, IsRecognized: true, IsDriverReady: true, IsPublished: true,
-		})
+			IsPresent: layers.Present, IsRecognized: layers.Recognized,
+			IsDriverReady: layers.DriverReady, IsPublished: layers.Published,
+		}
+		if device.Occupancy != nil {
+			entry.Occupancy = &v1beta1.DeviceOccupancy{
+				Source:    device.Occupancy.Source,
+				Reference: device.Occupancy.Reference,
+			}
+		}
+		if device.ObservedAt != nil {
+			entry.ObservedAt = &metav1.Time{Time: *device.ObservedAt}
+		}
+		entries = append(entries, entry)
 	}
 	fact := v1beta1.NodeDevice{
 		TypeMeta:   metav1.TypeMeta{APIVersion: v1beta1.GroupVersion.String(), Kind: "NodeDevice"},
@@ -262,4 +302,106 @@ func SameSnapshot(left, right map[string]string) bool {
 		}
 	}
 	return true
+}
+
+// Wire decodes a page value as the browser receives it, so a case asserts the
+// fields the page carries instead of the Go type behind them.
+func Wire(t *testing.T, value any) map[string]any {
+	t.Helper()
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("encode the page value: %v", err)
+	}
+	decoded := map[string]any{}
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("decode the page value: %v", err)
+	}
+	return decoded
+}
+
+// Entries returns the object entries of a list field; an absent list is an
+// empty one, which is how an empty state travels.
+func Entries(t *testing.T, object map[string]any, key string) []map[string]any {
+	t.Helper()
+	raw, found := object[key]
+	if !found || raw == nil {
+		return nil
+	}
+	list, isList := raw.([]any)
+	if !isList {
+		t.Fatalf("field %q = %T, want a list", key, raw)
+	}
+	entries := make([]map[string]any, 0, len(list))
+	for index, entry := range list {
+		decoded, isObject := entry.(map[string]any)
+		if !isObject {
+			t.Fatalf("entry %d of %q = %T, want an object", index, key, entry)
+		}
+		entries = append(entries, decoded)
+	}
+	return entries
+}
+
+// Object returns one nested object field.
+func Object(t *testing.T, object map[string]any, key string) map[string]any {
+	t.Helper()
+	raw, found := object[key]
+	if !found {
+		t.Fatalf("object carries no %q field: %+v", key, object)
+	}
+	nested, isObject := raw.(map[string]any)
+	if !isObject {
+		t.Fatalf("field %q = %T, want an object", key, raw)
+	}
+	return nested
+}
+
+// String returns one text field; a missing field or another type fails the
+// case, so a field the page stops carrying is not read as empty.
+func String(t *testing.T, object map[string]any, key string) string {
+	t.Helper()
+	raw, found := object[key]
+	if !found {
+		t.Fatalf("object carries no %q field: %+v", key, object)
+	}
+	text, isText := raw.(string)
+	if !isText {
+		t.Fatalf("field %q = %T, want a string", key, raw)
+	}
+	return text
+}
+
+// Bool returns one boolean field; a missing field or another type fails the
+// case.
+func Bool(t *testing.T, object map[string]any, key string) bool {
+	t.Helper()
+	raw, found := object[key]
+	if !found {
+		t.Fatalf("object carries no %q field: %+v", key, object)
+	}
+	flag, isBool := raw.(bool)
+	if !isBool {
+		t.Fatalf("field %q = %T, want a boolean", key, raw)
+	}
+	return flag
+}
+
+// Keys returns the sorted field names of one decoded object.
+func Keys(object map[string]any) []string {
+	keys := make([]string, 0, len(object))
+	for key := range object {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// ByName indexes decoded entries by their name field.
+func ByName(t *testing.T, entries []map[string]any) map[string]map[string]any {
+	t.Helper()
+	indexed := make(map[string]map[string]any, len(entries))
+	for _, entry := range entries {
+		indexed[String(t, entry, "name")] = entry
+	}
+	return indexed
 }

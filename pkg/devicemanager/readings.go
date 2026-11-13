@@ -32,16 +32,20 @@ type Readings struct {
 // collection time the object carries, not the read clock: the projection does
 // not pretend inputs it did not observe are fresh (DEVICE-C-1, KOSD-C-13).
 func (r *Readings) Read(ctx context.Context, _ identity.Session, item extension.PageItem) (pages.Reading, *controlplane.Error) {
+	var resolve func(context.Context) (any, time.Time, *controlplane.Error)
 	switch item.ID {
 	case ItemNodeSummary:
-		value, observedAt, failure := r.nodeSummary(ctx)
-		if failure != nil {
-			return pages.Reading{}, failure
-		}
-		return pages.Reading{Value: value, ObservedAt: observedAt}, nil
+		resolve = r.nodeSummary
+	case ItemDeviceList:
+		resolve = r.deviceList
 	default:
 		return pages.Reading{}, unknownItem(item.ID)
 	}
+	value, observedAt, failure := resolve(ctx)
+	if failure != nil {
+		return pages.Reading{}, failure
+	}
+	return pages.Reading{Value: value, ObservedAt: observedAt}, nil
 }
 
 // nodeSummary lists every node with its identity, its hardware summary and the
