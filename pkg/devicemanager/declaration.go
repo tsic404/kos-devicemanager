@@ -23,6 +23,10 @@ const PageDevices = "devices"
 // ItemNodeSummary is the node identity and hardware summary item (DEVICE-C-2).
 const ItemNodeSummary = "node-summary"
 
+// ItemDeviceList is the per-device item: four fact layers, the entry's
+// collection time and the occupancy (DEVICE-C-3, DEVICE-C-4).
+const ItemDeviceList = "device-list"
+
 // ReadOnlyReason explains why the page offers no modification entry. The fact
 // side is the collector's alone, and hardware actions are outside the product
 // (DEVICE-C-1, KOSD-NG-8).
@@ -66,6 +70,11 @@ func DevicesPage() extension.Page {
 			Label:     "节点硬件摘要",
 			Source:    extension.PageSourceObject,
 			Reference: Identifier + "/" + ItemNodeSummary,
+		}, {
+			ID:        ItemDeviceList,
+			Label:     "设备清单",
+			Source:    extension.PageSourceObject,
+			Reference: Identifier + "/" + ItemDeviceList,
 		}},
 	}
 }
