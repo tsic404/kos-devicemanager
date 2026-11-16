@@ -7,6 +7,7 @@ package devicet1
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"testing"
 	"time"
 
@@ -71,8 +72,35 @@ func TestDevicePageCarriesSourceTypesAndObservationTimes(t *testing.T) {
 	if len(page.Actions) != 0 {
 		t.Fatalf("a read-only page offers actions: %+v", page.Actions)
 	}
-	if len(page.Sources) != 1 || page.Sources[0] != extension.PageSourceObject {
-		t.Fatalf("page sources = %v, want [%s]", page.Sources, extension.PageSourceObject)
+
+	// Every declared item states the source type that judges it and the moment
+	// that source observed the value; the page carries the set its items
+	// declare (KOSD-C-53, DEVICE-C-1).
+	declared := map[string]string{
+		devicemanager.ItemNodeSummary:   extension.PageSourceObject,
+		devicemanager.ItemDeviceList:    extension.PageSourceObject,
+		devicemanager.ItemLayerAlerts:   extension.PageSourceComputed,
+		devicemanager.ItemFactStaleness: extension.PageSourceComputed,
+	}
+	if len(page.Items) != len(declared) {
+		t.Fatalf("page items = %+v, want the %d items the device page declares", page.Items, len(declared))
+	}
+	for _, rendered := range page.Items {
+		source, known := declared[rendered.ID]
+		if !known {
+			t.Fatalf("the page carries an item it does not declare: %q", rendered.ID)
+		}
+		if rendered.Source != source {
+			t.Fatalf("item %q source = %q, want %q", rendered.ID, rendered.Source, source)
+		}
+		if rendered.ObservedAt == nil {
+			t.Fatalf("item %q carries no observation time", rendered.ID)
+		}
+	}
+	sources := append([]string(nil), page.Sources...)
+	sort.Strings(sources)
+	if want := []string{extension.PageSourceComputed, extension.PageSourceObject}; !harness.EqualStrings(sources, want) {
+		t.Fatalf("page sources = %v, want %v", sources, want)
 	}
 
 	item, found := harness.ItemOf(page, devicemanager.ItemNodeSummary)

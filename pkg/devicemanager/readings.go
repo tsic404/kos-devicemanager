@@ -30,7 +30,9 @@ type Readings struct {
 
 // Read implements pages.Readings. An object item's observation is the
 // collection time the object carries, not the read clock: the projection does
-// not pretend inputs it did not observe are fresh (DEVICE-C-1, KOSD-C-13).
+// not pretend inputs it did not observe are fresh (DEVICE-C-1, KOSD-C-13). A
+// computed item states the observation of the inputs it rests on, which is how
+// the shell marks a projection read beyond that bound stale (KOSD-C-13).
 func (r *Readings) Read(ctx context.Context, _ identity.Session, item extension.PageItem) (pages.Reading, *controlplane.Error) {
 	var resolve func(context.Context) (any, time.Time, *controlplane.Error)
 	switch item.ID {
@@ -38,6 +40,10 @@ func (r *Readings) Read(ctx context.Context, _ identity.Session, item extension.
 		resolve = r.nodeSummary
 	case ItemDeviceList:
 		resolve = r.deviceList
+	case ItemLayerAlerts:
+		resolve = r.layerAlerts
+	case ItemFactStaleness:
+		resolve = r.factStaleness
 	default:
 		return pages.Reading{}, unknownItem(item.ID)
 	}
@@ -50,9 +56,11 @@ func (r *Readings) Read(ctx context.Context, _ identity.Session, item extension.
 
 // nodeSummary lists every node with its identity, its hardware summary and the
 // collection time the facts carry (DEVICE-C-2). Nodes come from the Node list,
-// so a node whose collection is missing is still shown. The item's observation
-// is the oldest collection time it rests on, the least fresh input of the
-// summary; with no fact at all the read itself is the observation.
+// so a node whose collection is missing is still shown, and a fact object the
+// validator marked invalid yields no summary instead of a normal one
+// (DEVICE-C-6). The item's observation is the oldest collection time it rests
+// on, the least fresh input of the summary; with no fact at all the read itself
+// is the observation.
 func (r *Readings) nodeSummary(ctx context.Context) (any, time.Time, *controlplane.Error) {
 	reader := r.reader()
 	nodes, failure := reader.Nodes(ctx)
@@ -76,6 +84,9 @@ func (r *Readings) nodeSummary(ctx context.Context) (any, time.Time, *controlpla
 		switch {
 		case !hasFacts:
 			summary.Reason = NoFactsReason
+		case isInvalidFact(fact):
+			summary.IsObservable = false
+			summary.Reason = InvalidFactReason
 		case fact.Spec.ObservedAt == nil:
 			summary.Reason = "设备事实没有采集时间：该节点的摘要不可观察"
 		default:
