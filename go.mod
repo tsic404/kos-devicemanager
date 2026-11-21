@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/tsic404/kos-sdk v0.0.0-20261113175352-db19ac3e7b97
-	github.com/tsic404/kosd v0.0.0-20261113133102-04c9f121a115
+	github.com/tsic404/kosd v0.0.0-20261120234107-2750e6807e13
 	k8s.io/apimachinery v0.37.1
 	k8s.io/client-go v0.37.1
 )
