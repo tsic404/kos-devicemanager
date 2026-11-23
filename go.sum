@@ -110,8 +110,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/tsic404/kos-sdk v0.0.0-20261113175352-db19ac3e7b97 h1:041VpWlok4VZPOFcAkScxUUfkhiDA/xLvFyNIC/3wYs=
 github.com/tsic404/kos-sdk v0.0.0-20261113175352-db19ac3e7b97/go.mod h1:8XFF1Ad9c8qk4V73jMF+b8Iln3CQKIsTACRnyBUhBE0=
-github.com/tsic404/kosd v0.0.0-20261113133102-04c9f121a115 h1:7Esu36zOz8D1NSn2uz3U90KMUrv5UX9/NoyxOzAFK9A=
-github.com/tsic404/kosd v0.0.0-20261113133102-04c9f121a115/go.mod h1:A3zDY08xMd/gp/dXhjOtuop5KspFZgko40YcfTDG9hA=
+github.com/tsic404/kosd v0.0.0-20261120234107-2750e6807e13 h1:J5Dm2U+BwBpo8q9ftBUKSB+0qa9OXFsiOprrFjTKzhE=
+github.com/tsic404/kosd v0.0.0-20261120234107-2750e6807e13/go.mod h1:RSnVoMES6rf5BTIUDUrvHNCzNUGzOuY6KJnt3+ms4uE=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
